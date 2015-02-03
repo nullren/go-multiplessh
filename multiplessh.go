@@ -59,7 +59,12 @@ func Run(hosts []string, command ...string) chan string {
 	for _, host := range hosts {
 		cmd := run(host, command...)
 		cmds = append(cmds, cmd)
+
 		go gatherOutput(host, cmd, output)
+
+		if err := cmd.Start(); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	return output
