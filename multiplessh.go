@@ -6,44 +6,8 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"syscall"
+	"runtime"
 )
-
-func run(host string, command ...string) *exec.Cmd {
-	cmd := exec.Command("ssh", append([]string{"-tt", host}, command...)...)
-	// not totally certain about this one
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	cmd.Stdin, _ = os.Open("/dev/null")
-	return cmd
-}
-
-func killpg(cmd *exec.Cmd) {
-	if pgid, err := syscall.Getpgid(cmd.Process.Pid); err == nil {
-		syscall.Kill(-pgid, 1)
-	}
-}
-
-func gatherOutput(host string, cmd *exec.Cmd, c chan string) error {
-	out, err := cmd.StdoutPipe()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return loopout(host, bufio.NewReader(out), c)
-}
-
-func loopout(host string, r *bufio.Reader, c chan string) error {
-	line, err := readline(r)
-	if err != nil {
-		return err
-	}
-
-	// async send it
-	go func(host, line string) {
-		c <- fmt.Sprintf("%s\t%s", host, line)
-	}(host, line)
-
-	return loopout(host, r, c)
-}
 
 func readline(r *bufio.Reader) (string, error) {
 	bline, err := r.ReadBytes('\n')
@@ -53,25 +17,39 @@ func readline(r *bufio.Reader) (string, error) {
 	return "", err
 }
 
-// what to take a list of hosts, a command, and return a channel
-func Run(hosts []string, command ...string) (chan string, chan error) {
-	output := make(chan string)
-	errchan := make(chan error)
+func loopout(host string, oc chan string, r *bufio.Reader) error {
+	line, err := readline(r)
+	if err != nil {
+		return err
+	}
+	oc <- fmt.Sprintf("%s\t%s", host, line)
+	return loopout(host, oc, r)
+}
 
-	cmds := []*exec.Cmd{}
+func gatheroutput(host string, oc chan string, cmd *exec.Cmd) error {
+	out, err := cmd.StdoutPipe()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := cmd.Start(); err != nil {
+		log.Fatal(err)
+	}
+	return loopout(host, oc, bufio.NewReader(out))
+}
+
+func run(host string, oc chan string, command ...string) *exec.Cmd {
+	cmd := exec.Command("ssh", append([]string{"-tt", host}, command...)...)
+	cmd.Stdin, _ = os.Open("/dev/null")
+	go gatheroutput(host, oc, cmd)
+	return cmd
+}
+
+func Run(hosts []string, command ...string) chan string {
+	oc := make(chan string)
 
 	for _, host := range hosts {
-		cmd := run(host, command...)
-		cmds = append(cmds, cmd)
-
-		go func(e chan error) {
-			e <- gatherOutput(host, cmd, output)
-		}(errchan)
-
-		if err := cmd.Start(); err != nil {
-			log.Fatal(err)
-		}
+		run(host, oc, command...)
 	}
 
-	return output, errchan
+	return oc
 }
