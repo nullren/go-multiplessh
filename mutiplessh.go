@@ -2,6 +2,8 @@ package multiplessh
 
 import (
 	"bufio"
+	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"syscall"
@@ -10,7 +12,7 @@ import (
 func run(host string, command ...string) *exec.Cmd {
 	cmd := exec.Command("ssh", append([]string{"-tt", host}, command...)...)
 	// not totally certain about this one
-	cmd.SysProcAtter = &syscall.SysProcAttr{Setpgid: true}
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	cmd.Stdin, _ = os.Open("/dev/null")
 	return cmd
 }
@@ -45,7 +47,7 @@ func readline(r *bufio.Reader) (string, error) {
 	if err == nil {
 		return string(bline), nil
 	}
-	return nil, err
+	return "", err
 }
 
 // what to take a list of hosts, a command, and return a channel
@@ -53,7 +55,7 @@ func Run(hosts []string, command ...string) chan string {
 	output := make(chan string)
 	cmds := []*exec.Cmd{}
 
-	for host := range hosts {
+	for _, host := range hosts {
 		cmd := run(host, command...)
 		cmds = append(cmds, cmd)
 		go gatherOutput(host, cmd, output)
