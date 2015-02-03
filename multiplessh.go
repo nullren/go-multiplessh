@@ -64,13 +64,13 @@ func Run(hosts []string, command ...string) (chan string, chan error) {
 		cmd := run(host, command...)
 		cmds = append(cmds, cmd)
 
-		if err := cmd.Start(); err != nil {
-			log.Fatal(err)
-		}
-
 		go func(e chan error) {
 			e <- gatherOutput(host, cmd, output)
 		}(errchan)
+
+		if err := cmd.Start(); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	return output, errchan
