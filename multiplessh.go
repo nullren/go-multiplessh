@@ -47,12 +47,13 @@ func run(host string, oc chan string, command ...string) *exec.Cmd {
 	return cmd
 }
 
-func Run(hosts []string, command ...string) chan string {
+func Run(hosts []string, command ...string) (chan string, []*exec.Cmd) {
 	oc := make(chan string)
+	cmds := []*exec.Cmd{}
 
 	for _, host := range hosts {
-		run(host, oc, command...)
+		cmds = append(cmds, run(host, oc, command...))
 	}
 
-	return oc
+	return oc, cmds
 }
