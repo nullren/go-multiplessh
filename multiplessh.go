@@ -36,10 +36,12 @@ func loopout(host string, r *bufio.Reader, c chan string) error {
 	if err != nil {
 		return err
 	}
+
 	// async send it
 	go func(host, line string) {
 		c <- fmt.Sprintf("%s\t%s", host, line)
 	}(host, line)
+
 	return loopout(host, r, c)
 }
 
@@ -60,11 +62,11 @@ func Run(hosts []string, command ...string) chan string {
 		cmd := run(host, command...)
 		cmds = append(cmds, cmd)
 
-		go gatherOutput(host, cmd, output)
-
 		if err := cmd.Start(); err != nil {
 			log.Fatal(err)
 		}
+
+		go gatherOutput(host, cmd, output)
 	}
 
 	return output
