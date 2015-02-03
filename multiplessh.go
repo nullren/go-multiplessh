@@ -48,7 +48,7 @@ func run(host string, oc chan string, command ...string) *exec.Cmd {
 }
 
 func Run(hosts []string, command ...string) (chan string, []*exec.Cmd) {
-	oc := make(chan string)
+	oc := make(chan string, 1)
 	cmds := []*exec.Cmd{}
 
 	for _, host := range hosts {
