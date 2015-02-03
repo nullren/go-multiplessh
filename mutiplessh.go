@@ -36,9 +36,9 @@ func loopout(host string, r *bufio.Reader, c chan string) error {
 		return err
 	}
 	// async send it
-	go func() {
+	go func(host, line string) {
 		c <- fmt.Sprintf("%s\t%s", host, line)
-	}()
+	}(host, line)
 	return loopout(host, r, c)
 }
 
