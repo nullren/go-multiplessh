@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"runtime"
 )
 
 func readline(r *bufio.Reader) (string, error) {
