@@ -32,7 +32,8 @@ func gatherOutput(host string, cmd *exec.Cmd, c chan string) error {
 }
 
 func loopout(host string, r *bufio.Reader, c chan string) error {
-	if line, err := readline(r); err != nil {
+	line, err := readline(r)
+	if err != nil {
 		return err
 	}
 	// async send it
