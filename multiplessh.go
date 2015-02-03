@@ -41,7 +41,9 @@ func gatheroutput(host string, oc chan string, cmd *exec.Cmd) error {
 func run(host string, oc chan string, command ...string) *exec.Cmd {
 	cmd := exec.Command("ssh", append([]string{"-tt", host}, command...)...)
 	cmd.Stdin, _ = os.Open("/dev/null")
-	go gatheroutput(host, oc, cmd)
+	go func(host string, oc chan string, cmd *exec.Cmd) {
+		gatheroutput(host, oc, cmd)
+	}(host, oc, cmd)
 	return cmd
 }
 
