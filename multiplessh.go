@@ -54,8 +54,10 @@ func readline(r *bufio.Reader) (string, error) {
 }
 
 // what to take a list of hosts, a command, and return a channel
-func Run(hosts []string, command ...string) chan string {
+func Run(hosts []string, command ...string) (chan string, chan error) {
 	output := make(chan string)
+	errchan := make(chan error)
+
 	cmds := []*exec.Cmd{}
 
 	for _, host := range hosts {
@@ -66,8 +68,10 @@ func Run(hosts []string, command ...string) chan string {
 			log.Fatal(err)
 		}
 
-		go gatherOutput(host, cmd, output)
+		go func(e chan error) {
+			e <- gatherOutput(host, cmd, output)
+		}(errchan)
 	}
 
-	return output
+	return output, errchan
 }
