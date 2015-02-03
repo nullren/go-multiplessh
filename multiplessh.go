@@ -21,7 +21,9 @@ func loopout(host string, oc chan string, r *bufio.Reader) error {
 	if err != nil {
 		return err
 	}
-	oc <- fmt.Sprintf("%s\t%s", host, line)
+	go func(host, line string) {
+		oc <- fmt.Sprintf("%s\t%s", host, line)
+	}(host, line)
 	return loopout(host, oc, r)
 }
 
